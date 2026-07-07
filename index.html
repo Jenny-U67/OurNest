@@ -1,1 +1,561 @@
-<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body><h1>Directory access forbidden</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Savings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!-- Firebase (free database that syncs your data between the two of you) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper: #F5EFE0;
+    --paper-line: #D8CFB8;
+    --ledger-green: #1F4D3D;
+    --ledger-green-light: #2C6650;
+    --ink: #263A5C;
+    --gold: #B8863B;
+    --red-ink: #8B3A3A;
+    --card-shadow: 0 8px 24px rgba(31,77,61,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(31,77,61,0.05) 28px);
+    font-family:'Inter', sans-serif;
+    color: var(--ink);
+    padding: 28px 16px 60px;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 640px; margin: 0 auto; }
+
+  /* ---------- LOCK SCREEN ---------- */
+  .lock-screen{
+    max-width: 380px;
+    margin: 60px auto;
+    background: #fff;
+    border-radius: 18px;
+    padding: 36px 28px;
+    box-shadow: var(--card-shadow);
+    text-align:center;
+    border: 1px solid var(--paper-line);
+  }
+  .lock-screen .stamp-icon{
+    width:56px;height:56px;border-radius:50%;
+    border:2.5px dashed var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    margin: 0 auto 18px;
+    transform: rotate(-6deg);
+    font-family:'Fraunces', serif; font-weight:700; color:var(--gold); font-size:22px;
+  }
+  .lock-screen h1{
+    font-family:'Fraunces', serif; font-size: 24px; margin: 0 0 6px;
+    color: var(--ledger-green);
+  }
+  .lock-screen p{ font-size:14px; color:#6b6255; margin:0 0 22px; line-height:1.5;}
+  .pin-input{
+    width:100%; padding:14px 16px; font-size:20px; letter-spacing:8px; text-align:center;
+    font-family:'IBM Plex Mono', monospace; border-radius:10px; border:1.5px solid var(--paper-line);
+    background: var(--paper); color:var(--ink); margin-bottom:14px;
+  }
+  .pin-input:focus{ outline:none; border-color: var(--ledger-green-light); }
+  .btn{
+    width:100%; padding:13px; border:none; border-radius:10px; font-size:15px; font-weight:600;
+    background: var(--ledger-green); color:#fff; cursor:pointer; font-family:'Inter',sans-serif;
+    transition: transform .12s ease, background .15s ease;
+  }
+  .btn:hover{ background: var(--ledger-green-light); }
+  .btn:active{ transform: scale(0.98); }
+  .btn-ghost{
+    background:transparent; color:var(--ledger-green); border:1.5px solid var(--paper-line);
+  }
+  .btn-ghost:hover{ background: rgba(31,77,61,0.06); }
+  .error-msg{ color:var(--red-ink); font-size:13px; margin: -6px 0 12px; min-height:16px; }
+
+  /* ---------- COVER ---------- */
+  .cover{
+    background: linear-gradient(145deg, var(--ledger-green) 0%, var(--ledger-green-light) 100%);
+    border-radius: 20px;
+    padding: 30px 26px 26px;
+    color: #EFE9D8;
+    position: relative;
+    box-shadow: var(--card-shadow);
+    overflow:hidden;
+  }
+  .cover::before{
+    content:"";
+    position:absolute; inset:8px;
+    border: 1px solid rgba(239,233,216,0.25);
+    border-radius: 14px;
+    pointer-events:none;
+  }
+  .cover-eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase;
+    opacity:0.75; margin-bottom:6px;
+  }
+  .cover h1{
+    font-family:'Fraunces', serif; font-weight:700; font-size:30px; margin:0 0 18px;
+  }
+  .cover-total-row{ display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px;}
+  .cover-total .label{ font-size:12px; opacity:0.75; margin-bottom:4px; }
+  .cover-total .amount{
+    font-family:'IBM Plex Mono', monospace; font-size:34px; font-weight:600;
+  }
+  .seal{
+    width:76px; height:76px; border-radius:50%;
+    border: 2.5px dashed var(--gold);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    transform: rotate(-7deg); flex-shrink:0;
+    background: rgba(184,134,59,0.08);
+  }
+  .seal .pct{ font-family:'Fraunces', serif; font-weight:700; font-size:19px; color: var(--gold); }
+  .seal .pct-label{ font-family:'IBM Plex Mono', monospace; font-size:8px; color:var(--gold); letter-spacing:1px; }
+
+  /* ---------- HOLDERS ---------- */
+  .holders{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+  .holder-card{
+    background:#fff; border-radius:16px; padding:16px 16px 14px;
+    border:1px solid var(--paper-line); box-shadow: 0 2px 8px rgba(31,77,61,0.06);
+  }
+  .holder-name{ font-family:'Fraunces', serif; font-weight:600; font-size:15px; margin-bottom:4px; display:flex; align-items:center; gap:8px;}
+  .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .dot-a{ background: var(--gold); }
+  .dot-b{ background: var(--red-ink); }
+  .holder-amount{ font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; color:var(--ledger-green); }
+  .holder-sub{ font-size:11px; color:#8a8172; margin-top:2px; }
+
+  /* ---------- GOAL BAR ---------- */
+  .goal-block{ margin-top:16px; background:#fff; border-radius:14px; padding:14px 16px; border:1px solid var(--paper-line);}
+  .goal-top{ display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:#6b6255; margin-bottom:8px;}
+  .goal-top button{ background:none; border:none; color:var(--ledger-green); font-size:12px; cursor:pointer; text-decoration:underline; font-family:'Inter',sans-serif; padding:0;}
+  .goal-track{ height:9px; background: var(--paper); border-radius:6px; overflow:hidden; border:1px solid var(--paper-line);}
+  .goal-fill{ height:100%; background: linear-gradient(90deg, var(--gold), var(--ledger-green-light)); border-radius:6px; transition: width .5s ease; }
+
+  /* ---------- ADD ENTRY ---------- */
+  .add-card{ margin-top:20px; background:#fff; border-radius:16px; padding:18px; border:1px solid var(--paper-line); box-shadow: var(--card-shadow);}
+  .add-card h2{ font-family:'Fraunces', serif; font-size:16px; margin:0 0 14px; color:var(--ledger-green);}
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; }
+  .field label{ display:block; font-size:11px; color:#8a8172; margin-bottom:5px; font-weight:600; letter-spacing:.3px; }
+  select, input[type=number], input[type=date], input[type=text]{
+    width:100%; padding:10px 11px; border-radius:9px; border:1.5px solid var(--paper-line);
+    background: var(--paper); font-family:'Inter', sans-serif; font-size:14px; color:var(--ink);
+  }
+  select:focus, input:focus{ outline:none; border-color: var(--ledger-green-light); }
+  .who-toggle{ display:flex; gap:8px; }
+  .who-btn{
+    flex:1; padding:10px; border-radius:9px; border:1.5px solid var(--paper-line); background:var(--paper);
+    cursor:pointer; font-size:13.5px; font-weight:600; color:var(--ink); font-family:'Inter',sans-serif;
+    transition: all .15s ease;
+  }
+  .who-btn.active-a{ background: var(--gold); border-color: var(--gold); color:#fff; }
+  .who-btn.active-b{ background: var(--red-ink); border-color: var(--red-ink); color:#fff; }
+
+  /* ---------- LEDGER ---------- */
+  .ledger{ margin-top:22px; }
+  .ledger-title{ font-family:'Fraunces', serif; font-size:16px; color:var(--ledger-green); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;}
+  .ledger-title span.count{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:#8a8172; font-weight:400;}
+  .entry-row{
+    background:#fff; border-radius:12px; padding:12px 14px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    border:1px solid var(--paper-line); border-left:4px solid var(--paper-line);
+    animation: slideIn .25s ease;
+  }
+  .entry-row.who-a{ border-left-color: var(--gold); }
+  .entry-row.who-b{ border-left-color: var(--red-ink); }
+  @keyframes slideIn{ from{ opacity:0; transform: translateY(-4px);} to{opacity:1; transform:translateY(0);} }
+  .entry-left{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+  .entry-who{ font-size:13px; font-weight:600; }
+  .entry-note{ font-size:12px; color:#8a8172; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
+  .entry-date{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:#a49b8b; margin-top:1px;}
+  .entry-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .entry-amount{ font-family:'IBM Plex Mono', monospace; font-size:15px; font-weight:600; color:var(--ledger-green); }
+  .del-btn{ background:none; border:none; color:#c9beac; cursor:pointer; font-size:16px; line-height:1; padding:2px 4px;}
+  .del-btn:hover{ color: var(--red-ink); }
+  .empty-state{ text-align:center; padding:36px 20px; color:#a49b8b; font-size:13.5px; }
+  .empty-state .stamp-icon{
+    width:44px;height:44px;border-radius:50%; border:2px dashed var(--paper-line);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 10px; font-size:18px;
+  }
+
+  .top-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+  .top-actions button{ background:none; border:none; color:#a49b8b; font-size:12px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .top-actions button:hover{ color: var(--red-ink); }
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background: var(--ledger-green); color:#fff; padding:11px 20px; border-radius:10px; font-size:13.5px;
+    box-shadow: var(--card-shadow); opacity:0; transition: all .3s ease; pointer-events:none; z-index:50;
+    font-family:'Inter',sans-serif;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(38,58,92,0.45); display:flex; align-items:center; justify-content:center;
+    z-index:60; padding:20px;
+  }
+  .modal-box{ background:#fff; border-radius:16px; padding:22px; max-width:340px; width:100%; box-shadow: var(--card-shadow);}
+  .modal-box h3{ font-family:'Fraunces', serif; font-size:17px; margin:0 0 12px; color:var(--ledger-green);}
+  .modal-actions{ display:flex; gap:10px; margin-top:14px; }
+
+  @media (max-width:420px){
+    .holders{ grid-template-columns:1fr 1fr; }
+    .cover h1{ font-size:24px; }
+    .cover-total .amount{ font-size:26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   FIREBASE CONFIG — PALITAN ITO NG SARILI MONG CONFIG
+   Kunin ito sa Firebase Console pagkatapos gumawa ng Web App.
+   Tingnan ang instructions na ibinigay sa'yo para dito.
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCgf_utPmQjqinPdg93TAA86KjS1StcERo",
+  authDomain: "our-savings-10ac1.firebaseapp.com",
+  projectId: "our-savings-10ac1",
+  storageBucket: "our-savings-10ac1.firebasestorage.app",
+  messagingSenderId: "108247677547",
+  appId: "1:108247677547:web:e824424a24f83ba0b00f2e"
+};
+
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.firestore();
+const docRef = db.collection('ipon').doc('shared');
+
+let state = {
+  unlocked: false,
+  pinSet: null,
+  entries: [],
+  goal: 0,
+  names: { a: 'Jen', b: 'Rey' },
+  selectedWho: 'a',
+  loading: true
+};
+
+const app = document.getElementById('app');
+const toastEl = document.getElementById('toast');
+
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(()=> toastEl.classList.remove('show'), 2200);
+}
+
+function peso(n){
+  return '₱' + Number(n||0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+async function saveToCloud(){
+  try{
+    await docRef.set({
+      pin: state.pinSet || null,
+      entries: state.entries,
+      goal: state.goal,
+      names: state.names
+    }, { merge: true });
+    return true;
+  }catch(e){
+    console.error('save failed', e);
+    return false;
+  }
+}
+
+function loadAll(){
+  // Real-time listener: kapag may pagbabago (kahit galing sa ibang device), auto-update ang dalawa
+  docRef.onSnapshot((snap)=>{
+    const data = snap.exists ? snap.data() : {};
+    state.pinSet = data.pin || null;
+    state.entries = Array.isArray(data.entries) ? data.entries : [];
+    state.goal = Number(data.goal) || 0;
+    state.names = data.names || { a: 'Jen', b: 'Rey' };
+    state.loading = false;
+    render();
+  }, (err)=>{
+    console.error('Firestore error', err);
+    state.loading = false;
+    app.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#8B3A3A;font-family:'Inter',sans-serif;">
+      Could not connect to the database. Check your FIREBASE_CONFIG in the code, or your Firestore rules.<br><br>
+      <span style="font-size:12px;color:#8a8172;">${err.message || ''}</span>
+    </div>`;
+  });
+}
+
+function totals(){
+  let a=0, b=0;
+  state.entries.forEach(e=>{
+    if(e.person === 'a') a += Number(e.amount);
+    else b += Number(e.amount);
+  });
+  return {a, b, combined: a+b};
+}
+
+function renderLock(errorMsg){
+  const isFirstTime = !state.pinSet;
+  app.innerHTML = `
+    <div class="lock-screen">
+      <div class="stamp-icon">✎</div>
+      <h1>Our Savings</h1>
+      <p>${isFirstTime
+        ? 'First, set up your own PIN (4-6 digits) that only the two of you know. You\'ll use this to unlock the app.'
+        : 'Enter your PIN to view your savings.'}</p>
+      <input type="text" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput" placeholder="••••">
+      <div class="error-msg">${errorMsg || ''}</div>
+      <button class="btn" id="pinSubmit">${isFirstTime ? 'Set PIN' : 'Unlock'}</button>
+    </div>
+  `;
+  const input = document.getElementById('pinInput');
+  input.focus();
+  const submit = async ()=>{
+    const val = input.value.trim();
+    if(val.length < 4){
+      renderLock('PIN must be 4-6 digits.');
+      return;
+    }
+    if(isFirstTime){
+      state.pinSet = val;
+      state.unlocked = true;
+      await saveToCloud();
+      showToast('Your PIN is set! 🔒');
+      render();
+    } else {
+      if(val === state.pinSet){
+        state.unlocked = true;
+        render();
+      } else {
+        renderLock('Wrong PIN, try again.');
+      }
+    }
+  };
+  document.getElementById('pinSubmit').onclick = submit;
+  input.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') submit(); });
+}
+
+function renderMain(){
+  const t = totals();
+  const pct = state.goal > 0 ? Math.min(100, Math.round((t.combined / state.goal) * 100)) : null;
+
+  const entriesSorted = [...state.entries].sort((x,y)=> new Date(y.date) - new Date(x.date) || y.createdAt - x.createdAt);
+
+  app.innerHTML = `
+    <div class="cover">
+      <div class="cover-eyebrow">Passbook &middot; ${state.names.a} &amp; ${state.names.b}</div>
+      <h1>Our Savings</h1>
+      <div class="cover-total-row">
+        <div class="cover-total">
+          <div class="label">Total Savings</div>
+          <div class="amount">${peso(t.combined)}</div>
+        </div>
+        ${state.goal > 0 ? `
+        <div class="seal">
+          <div class="pct">${pct}%</div>
+          <div class="pct-label">TOWARD GOAL</div>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <div class="holders">
+      <div class="holder-card">
+        <div class="holder-name"><span class="dot dot-a"></span>${state.names.a}</div>
+        <div class="holder-amount">${peso(t.a)}</div>
+        <div class="holder-sub">${t.combined>0 ? Math.round((t.a/t.combined)*100) : 0}% of total</div>
+      </div>
+      <div class="holder-card">
+        <div class="holder-name"><span class="dot dot-b"></span>${state.names.b}</div>
+        <div class="holder-amount">${peso(t.b)}</div>
+        <div class="holder-sub">${t.combined>0 ? Math.round((t.b/t.combined)*100) : 0}% of total</div>
+      </div>
+    </div>
+
+    <div class="goal-block">
+      <div class="goal-top">
+        <span>${state.goal > 0 ? `Goal: ${peso(state.goal)}` : 'No goal set yet'}</span>
+        <button id="editGoalBtn">${state.goal > 0 ? 'edit' : '+ set a goal'}</button>
+      </div>
+      ${state.goal > 0 ? `<div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>` : ''}
+    </div>
+
+    <div class="add-card">
+      <h2>Add Deposit</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>WHO</label>
+          <div class="who-toggle">
+            <button type="button" class="who-btn ${state.selectedWho==='a' ? 'active-a':''}" id="whoA">${state.names.a}</button>
+            <button type="button" class="who-btn ${state.selectedWho==='b' ? 'active-b':''}" id="whoB">${state.names.b}</button>
+          </div>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>AMOUNT (₱)</label>
+          <input type="number" id="amountInput" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>DATE</label>
+          <input type="date" id="dateInput">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>NOTE (optional)</label>
+          <input type="text" id="noteInput" placeholder="e.g. salary, bonus, tip">
+        </div>
+      </div>
+      <button class="btn" id="addEntryBtn">Add to Ledger</button>
+    </div>
+
+    <div class="ledger">
+      <div class="ledger-title">Ledger <span class="count">${state.entries.length} entries</span></div>
+      <div id="entriesList">
+        ${entriesSorted.length === 0 ? `
+          <div class="empty-state">
+            <div class="stamp-icon">🐖</div>
+            No entries yet. Start with your first deposit!
+          </div>
+        ` : entriesSorted.map(e => `
+          <div class="entry-row who-${e.person}" data-id="${e.id}">
+            <div class="entry-left">
+              <div class="entry-who">${e.person === 'a' ? state.names.a : state.names.b}${e.note ? ' &middot; <span class="entry-note">'+escapeHtml(e.note)+'</span>' : ''}</div>
+              <div class="entry-date">${formatDate(e.date)}</div>
+            </div>
+            <div class="entry-right">
+              <div class="entry-amount">${peso(e.amount)}</div>
+              <button class="del-btn" data-del="${e.id}" title="Remove">✕</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button id="lockBtn">🔒 Lock again</button>
+    </div>
+  `;
+
+  document.getElementById('dateInput').value = new Date().toISOString().slice(0,10);
+  document.getElementById('whoA').onclick = ()=>{ state.selectedWho='a'; render(); };
+  document.getElementById('whoB').onclick = ()=>{ state.selectedWho='b'; render(); };
+  document.getElementById('addEntryBtn').onclick = addEntry;
+  document.getElementById('editGoalBtn').onclick = editGoal;
+  document.getElementById('lockBtn').onclick = ()=>{ state.unlocked = false; render(); };
+
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = ()=> confirmDelete(btn.getAttribute('data-del'));
+  });
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function formatDate(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-PH', {month:'short', day:'numeric', year:'numeric'});
+}
+
+async function addEntry(){
+  const amountInput = document.getElementById('amountInput');
+  const dateInput = document.getElementById('dateInput');
+  const noteInput = document.getElementById('noteInput');
+  const amount = parseFloat(amountInput.value);
+  if(!amount || amount <= 0){
+    showToast('Please enter a valid amount.');
+    return;
+  }
+  const entry = {
+    id: 'e_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    person: state.selectedWho,
+    amount: amount,
+    date: dateInput.value || new Date().toISOString().slice(0,10),
+    note: noteInput.value.trim(),
+    createdAt: Date.now()
+  };
+  state.entries.push(entry);
+  const ok = await saveToCloud();
+  if(ok){
+    showToast('Deposit added! 💰');
+  } else {
+    showToast('Could not save, please try again.');
+  }
+  render();
+}
+
+function confirmDelete(id){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>Remove this entry?</h3>
+      <p style="font-size:13.5px;color:#6b6255;margin:0;">This can't be undone once deleted.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelDel">Cancel</button>
+        <button class="btn" id="confirmDel" style="background:var(--red-ink);">Remove</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('cancelDel').onclick = ()=> overlay.remove();
+  document.getElementById('confirmDel').onclick = async ()=>{
+    state.entries = state.entries.filter(e=> e.id !== id);
+    await saveToCloud();
+    overlay.remove();
+    showToast('Entry removed.');
+    render();
+  };
+}
+
+function editGoal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>Savings Goal</h3>
+      <input type="number" id="goalInput" placeholder="e.g. 50000" min="0" step="100" value="${state.goal || ''}" style="margin-bottom:14px;">
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelGoal">Cancel</button>
+        <button class="btn" id="saveGoal">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('cancelGoal').onclick = ()=> overlay.remove();
+  document.getElementById('saveGoal').onclick = async ()=>{
+    const val = parseFloat(document.getElementById('goalInput').value) || 0;
+    state.goal = val;
+    await saveToCloud();
+    overlay.remove();
+    showToast('Goal saved!');
+    render();
+  };
+}
+
+function render(){
+  if(state.loading){
+    app.innerHTML = `<div style="text-align:center;padding:80px 20px;color:#8a8172;font-family:'Inter',sans-serif;">Loading...</div>`;
+    return;
+  }
+  if(!state.unlocked){
+    renderLock();
+  } else {
+    renderMain();
+  }
+}
+
+render();
+loadAll();
+</script>
+</body>
+</html>
