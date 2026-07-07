@@ -215,11 +215,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-/* ============================================================
-   FIREBASE CONFIG — PALITAN ITO NG SARILI MONG CONFIG
-   Kunin ito sa Firebase Console pagkatapos gumawa ng Web App.
-   Tingnan ang instructions na ibinigay sa'yo para dito.
-   ============================================================ */
+
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCgf_utPmQjqinPdg93TAA86KjS1StcERo",
   authDomain: "our-savings-10ac1.firebaseapp.com",
@@ -231,14 +227,14 @@ const FIREBASE_CONFIG = {
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.firestore();
-const docRef = db.collection('ipon').doc('shared');
+const docRef = db.collection('savings').doc('shared');
 
 let state = {
   unlocked: false,
   pinSet: null,
   entries: [],
   goal: 0,
-  names: { a: 'Jen', b: 'Rey' },
+  names: { a: 'Jenny Ann', b: 'Rey' },
   selectedWho: 'a',
   loading: true
 };
@@ -272,13 +268,13 @@ async function saveToCloud(){
 }
 
 function loadAll(){
-  // Real-time listener: kapag may pagbabago (kahit galing sa ibang device), auto-update ang dalawa
+  
   docRef.onSnapshot((snap)=>{
     const data = snap.exists ? snap.data() : {};
     state.pinSet = data.pin || null;
     state.entries = Array.isArray(data.entries) ? data.entries : [];
     state.goal = Number(data.goal) || 0;
-    state.names = data.names || { a: 'Jen', b: 'Rey' };
+    state.names = data.names || { a: 'Jenny Ann', b: 'Rey' };
     state.loading = false;
     render();
   }, (err)=>{
