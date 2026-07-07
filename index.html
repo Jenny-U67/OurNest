@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Our Savings</title>
+<title>OurNest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <!-- Firebase (free database that syncs your data between the two of you) -->
@@ -11,21 +11,21 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root{
-    --paper: #F5EFE0;
-    --paper-line: #D8CFB8;
-    --ledger-green: #1F4D3D;
-    --ledger-green-light: #2C6650;
-    --ink: #263A5C;
-    --gold: #B8863B;
-    --red-ink: #8B3A3A;
-    --card-shadow: 0 8px 24px rgba(31,77,61,0.12);
+    --paper: #FDF1F6;
+    --paper-line: #F3D3E1;
+    --ledger-green: #C2185B;
+    --ledger-green-light: #E0568B;
+    --ink: #4A2740;
+    --gold: #D9A5B8;
+    --red-ink: #9C2D54;
+    --card-shadow: 0 8px 24px rgba(194,24,91,0.14);
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     background: var(--paper);
     background-image:
-      repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(31,77,61,0.05) 28px);
+      repeating-linear-gradient(180deg, transparent, transparent 27px, rgba(194,24,91,0.05) 28px);
     font-family:'Inter', sans-serif;
     color: var(--ink);
     padding: 28px 16px 60px;
@@ -216,7 +216,9 @@
 
 <script>
 /* ============================================================
-   FIREBASE CONFIG
+   FIREBASE CONFIG — PALITAN ITO NG SARILI MONG CONFIG
+   Kunin ito sa Firebase Console pagkatapos gumawa ng Web App.
+   Tingnan ang instructions na ibinigay sa'yo para dito.
    ============================================================ */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCgf_utPmQjqinPdg93TAA86KjS1StcERo",
@@ -236,7 +238,7 @@ let state = {
   pinSet: null,
   entries: [],
   goal: 0,
-  names: { a: 'Jen', b: 'Rey' },
+  names: { a: 'Jenny Ann', b: 'Rey' },
   selectedWho: 'a',
   loading: true
 };
@@ -270,12 +272,13 @@ async function saveToCloud(){
 }
 
 function loadAll(){
+  // Real-time listener: kapag may pagbabago (kahit galing sa ibang device), auto-update ang dalawa
   docRef.onSnapshot((snap)=>{
     const data = snap.exists ? snap.data() : {};
     state.pinSet = data.pin || null;
     state.entries = Array.isArray(data.entries) ? data.entries : [];
     state.goal = Number(data.goal) || 0;
-    state.names = data.names || { a: 'Jen', b: 'Rey' };
+    state.names = data.names || { a: 'Jenny Ann', b: 'Rey' };
     state.loading = false;
     render();
   }, (err)=>{
@@ -302,7 +305,8 @@ function renderLock(errorMsg){
   app.innerHTML = `
     <div class="lock-screen">
       <div class="stamp-icon">✎</div>
-      <h1>Our Savings</h1>
+      <h1>OurNest</h1>
+      <p style="font-family:'Fraunces', serif; font-size:15px; color:var(--ledger-green); font-weight:600; margin:-8px 0 16px;">Welcome, ${state.names.a} &amp; ${state.names.b} 💕</p>
       <p>${isFirstTime
         ? 'First, set up your own PIN (4-6 digits) that only the two of you know. You\'ll use this to unlock the app.'
         : 'Enter your PIN to view your savings.'}</p>
@@ -347,7 +351,7 @@ function renderMain(){
   app.innerHTML = `
     <div class="cover">
       <div class="cover-eyebrow">Passbook &middot; ${state.names.a} &amp; ${state.names.b}</div>
-      <h1>Our Savings</h1>
+      <h1>OurNest</h1>
       <div class="cover-total-row">
         <div class="cover-total">
           <div class="label">Total Savings</div>
