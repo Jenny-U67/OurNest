@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fil">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ipon Namin</title>
+<title>Our Savings</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<!-- Firebase (libreng database para magsync ang datos niyo dalawa) -->
+<!-- Firebase (free database that syncs your data between the two of you) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -285,7 +285,7 @@ function loadAll(){
     console.error('Firestore error', err);
     state.loading = false;
     app.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#8B3A3A;font-family:'Inter',sans-serif;">
-      Hindi ma-connect sa database. I-check ang FIREBASE_CONFIG sa code, o ang Firestore rules mo.<br><br>
+      Could not connect to the database. Check your FIREBASE_CONFIG in the code, or your Firestore rules.<br><br>
       <span style="font-size:12px;color:#8a8172;">${err.message || ''}</span>
     </div>`;
   });
@@ -305,13 +305,13 @@ function renderLock(errorMsg){
   app.innerHTML = `
     <div class="lock-screen">
       <div class="stamp-icon">✎</div>
-      <h1>Ipon Namin</h1>
+      <h1>Our Savings</h1>
       <p>${isFirstTime
-        ? 'Gawa muna kayo ng sariling PIN (4-6 digits) na alam lang ninyong dalawa. Ito ang gagamitin niyo para makapasok dito.'
-        : 'Ilagay ang PIN niyo para makita ang inyong savings.'}</p>
+        ? 'First, set up your own PIN (4-6 digits) that only the two of you know. You\'ll use this to unlock the app.'
+        : 'Enter your PIN to view your savings.'}</p>
       <input type="text" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput" placeholder="••••">
       <div class="error-msg">${errorMsg || ''}</div>
-      <button class="btn" id="pinSubmit">${isFirstTime ? 'I-set ang PIN' : 'Buksan'}</button>
+      <button class="btn" id="pinSubmit">${isFirstTime ? 'Set PIN' : 'Unlock'}</button>
     </div>
   `;
   const input = document.getElementById('pinInput');
@@ -319,21 +319,21 @@ function renderLock(errorMsg){
   const submit = async ()=>{
     const val = input.value.trim();
     if(val.length < 4){
-      renderLock('Kailangan ng 4-6 digits.');
+      renderLock('PIN must be 4-6 digits.');
       return;
     }
     if(isFirstTime){
       state.pinSet = val;
       state.unlocked = true;
       await saveToCloud();
-      showToast('Na-set na ang PIN niyo! 🔒');
+      showToast('Your PIN is set! 🔒');
       render();
     } else {
       if(val === state.pinSet){
         state.unlocked = true;
         render();
       } else {
-        renderLock('Mali ang PIN, subukan ulit.');
+        renderLock('Wrong PIN, try again.');
       }
     }
   };
@@ -350,16 +350,16 @@ function renderMain(){
   app.innerHTML = `
     <div class="cover">
       <div class="cover-eyebrow">Passbook &middot; ${state.names.a} &amp; ${state.names.b}</div>
-      <h1>Ipon Namin</h1>
+      <h1>Our Savings</h1>
       <div class="cover-total-row">
         <div class="cover-total">
-          <div class="label">Kabuuang Ipon</div>
+          <div class="label">Total Savings</div>
           <div class="amount">${peso(t.combined)}</div>
         </div>
         ${state.goal > 0 ? `
         <div class="seal">
           <div class="pct">${pct}%</div>
-          <div class="pct-label">TUNGO SA GOAL</div>
+          <div class="pct-label">TOWARD GOAL</div>
         </div>` : ''}
       </div>
     </div>
@@ -368,28 +368,28 @@ function renderMain(){
       <div class="holder-card">
         <div class="holder-name"><span class="dot dot-a"></span>${state.names.a}</div>
         <div class="holder-amount">${peso(t.a)}</div>
-        <div class="holder-sub">${t.combined>0 ? Math.round((t.a/t.combined)*100) : 0}% ng kabuuan</div>
+        <div class="holder-sub">${t.combined>0 ? Math.round((t.a/t.combined)*100) : 0}% of total</div>
       </div>
       <div class="holder-card">
         <div class="holder-name"><span class="dot dot-b"></span>${state.names.b}</div>
         <div class="holder-amount">${peso(t.b)}</div>
-        <div class="holder-sub">${t.combined>0 ? Math.round((t.b/t.combined)*100) : 0}% ng kabuuan</div>
+        <div class="holder-sub">${t.combined>0 ? Math.round((t.b/t.combined)*100) : 0}% of total</div>
       </div>
     </div>
 
     <div class="goal-block">
       <div class="goal-top">
-        <span>${state.goal > 0 ? `Goal: ${peso(state.goal)}` : 'Wala pang goal na naka-set'}</span>
-        <button id="editGoalBtn">${state.goal > 0 ? 'baguhin' : '+ maglagay ng goal'}</button>
+        <span>${state.goal > 0 ? `Goal: ${peso(state.goal)}` : 'No goal set yet'}</span>
+        <button id="editGoalBtn">${state.goal > 0 ? 'edit' : '+ set a goal'}</button>
       </div>
       ${state.goal > 0 ? `<div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>` : ''}
     </div>
 
     <div class="add-card">
-      <h2>Magdagdag ng Deposito</h2>
+      <h2>Add Deposit</h2>
       <div class="field-row">
         <div class="field">
-          <label>SINO</label>
+          <label>WHO</label>
           <div class="who-toggle">
             <button type="button" class="who-btn ${state.selectedWho==='a' ? 'active-a':''}" id="whoA">${state.names.a}</button>
             <button type="button" class="who-btn ${state.selectedWho==='b' ? 'active-b':''}" id="whoB">${state.names.b}</button>
@@ -398,21 +398,21 @@ function renderMain(){
       </div>
       <div class="field-row">
         <div class="field">
-          <label>HALAGA (₱)</label>
+          <label>AMOUNT (₱)</label>
           <input type="number" id="amountInput" placeholder="0.00" min="0" step="0.01">
         </div>
         <div class="field">
-          <label>PETSA</label>
+          <label>DATE</label>
           <input type="date" id="dateInput">
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>NOTE (opsyonal)</label>
-          <input type="text" id="noteInput" placeholder="hal. sahod, bonus, tip">
+          <label>NOTE (optional)</label>
+          <input type="text" id="noteInput" placeholder="e.g. salary, bonus, tip">
         </div>
       </div>
-      <button class="btn" id="addEntryBtn">Idagdag sa Ledger</button>
+      <button class="btn" id="addEntryBtn">Add to Ledger</button>
     </div>
 
     <div class="ledger">
@@ -421,7 +421,7 @@ function renderMain(){
         ${entriesSorted.length === 0 ? `
           <div class="empty-state">
             <div class="stamp-icon">🐖</div>
-            Wala pang entry. Simulan niyo na ang unang deposito!
+            No entries yet. Start with your first deposit!
           </div>
         ` : entriesSorted.map(e => `
           <div class="entry-row who-${e.person}" data-id="${e.id}">
@@ -431,7 +431,7 @@ function renderMain(){
             </div>
             <div class="entry-right">
               <div class="entry-amount">${peso(e.amount)}</div>
-              <button class="del-btn" data-del="${e.id}" title="Alisin">✕</button>
+              <button class="del-btn" data-del="${e.id}" title="Remove">✕</button>
             </div>
           </div>
         `).join('')}
@@ -439,7 +439,7 @@ function renderMain(){
     </div>
 
     <div class="top-actions">
-      <button id="lockBtn">🔒 I-lock ulit</button>
+      <button id="lockBtn">🔒 Lock again</button>
     </div>
   `;
 
@@ -472,7 +472,7 @@ async function addEntry(){
   const noteInput = document.getElementById('noteInput');
   const amount = parseFloat(amountInput.value);
   if(!amount || amount <= 0){
-    showToast('Maglagay ng valid na halaga.');
+    showToast('Please enter a valid amount.');
     return;
   }
   const entry = {
@@ -486,9 +486,9 @@ async function addEntry(){
   state.entries.push(entry);
   const ok = await saveToCloud();
   if(ok){
-    showToast('Naidagdag na ang deposito! 💰');
+    showToast('Deposit added! 💰');
   } else {
-    showToast('Hindi na-save, subukan ulit.');
+    showToast('Could not save, please try again.');
   }
   render();
 }
@@ -498,11 +498,11 @@ function confirmDelete(id){
   overlay.className = 'modal-overlay';
   overlay.innerHTML = `
     <div class="modal-box">
-      <h3>Alisin ang entry na ito?</h3>
-      <p style="font-size:13.5px;color:#6b6255;margin:0;">Hindi na ito mababawi pag na-delete.</p>
+      <h3>Remove this entry?</h3>
+      <p style="font-size:13.5px;color:#6b6255;margin:0;">This can't be undone once deleted.</p>
       <div class="modal-actions">
-        <button class="btn btn-ghost" id="cancelDel">Kanselahin</button>
-        <button class="btn" id="confirmDel" style="background:var(--red-ink);">Alisin</button>
+        <button class="btn btn-ghost" id="cancelDel">Cancel</button>
+        <button class="btn" id="confirmDel" style="background:var(--red-ink);">Remove</button>
       </div>
     </div>
   `;
@@ -512,7 +512,7 @@ function confirmDelete(id){
     state.entries = state.entries.filter(e=> e.id !== id);
     await saveToCloud();
     overlay.remove();
-    showToast('Naalis na ang entry.');
+    showToast('Entry removed.');
     render();
   };
 }
@@ -523,10 +523,10 @@ function editGoal(){
   overlay.innerHTML = `
     <div class="modal-box">
       <h3>Savings Goal</h3>
-      <input type="number" id="goalInput" placeholder="hal. 50000" min="0" step="100" value="${state.goal || ''}" style="margin-bottom:14px;">
+      <input type="number" id="goalInput" placeholder="e.g. 50000" min="0" step="100" value="${state.goal || ''}" style="margin-bottom:14px;">
       <div class="modal-actions">
-        <button class="btn btn-ghost" id="cancelGoal">Kanselahin</button>
-        <button class="btn" id="saveGoal">I-save</button>
+        <button class="btn btn-ghost" id="cancelGoal">Cancel</button>
+        <button class="btn" id="saveGoal">Save</button>
       </div>
     </div>
   `;
@@ -537,7 +537,7 @@ function editGoal(){
     state.goal = val;
     await saveToCloud();
     overlay.remove();
-    showToast('Na-save ang goal!');
+    showToast('Goal saved!');
     render();
   };
 }
