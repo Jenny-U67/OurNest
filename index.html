@@ -216,9 +216,7 @@
 
 <script>
 /* ============================================================
-   FIREBASE CONFIG — PALITAN ITO NG SARILI MONG CONFIG
-   Kunin ito sa Firebase Console pagkatapos gumawa ng Web App.
-   Tingnan ang instructions na ibinigay sa'yo para dito.
+   FIREBASE CONFIG
    ============================================================ */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCgf_utPmQjqinPdg93TAA86KjS1StcERo",
@@ -272,7 +270,6 @@ async function saveToCloud(){
 }
 
 function loadAll(){
-  // Real-time listener: kapag may pagbabago (kahit galing sa ibang device), auto-update ang dalawa
   docRef.onSnapshot((snap)=>{
     const data = snap.exists ? snap.data() : {};
     state.pinSet = data.pin || null;
