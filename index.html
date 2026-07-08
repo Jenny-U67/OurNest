@@ -309,7 +309,7 @@ function renderLock(errorMsg){
         ${coverPhotoHtml()}
         <h1>OurNest</h1>
         <p class="welcome-line">Welcome, ${state.names.a} &amp; ${state.names.b} 💕</p>
-        <p class="desc">Sino ka? Piliin ang pangalan mo para makapasok.</p>
+        <p class="desc">Who are you? Choice your name to inter.</p>
         <div class="identity-choice">
           <button class="identity-btn" id="pickA"><span class="identity-dot dot-a"></span>${state.names.a}</button>
           <button class="identity-btn" id="pickB"><span class="identity-dot dot-b"></span>${state.names.b}</button>
@@ -337,12 +337,12 @@ function renderLock(errorMsg){
       <h1>OurNest</h1>
       <p class="welcome-line">Hi, ${state.names[id]}!</p>
       <p class="desc">${isSetup
-        ? 'First time mo dito — gumawa ng sarili mong PIN (4-6 digits) na ikaw lang ang may alam.'
-        : 'Ilagay ang PIN mo para makapasok.'}</p>
+        ? 'First time mo dito — Create your own PIN (4-6 digits) .'
+        : 'Inter your Pin.'}</p>
       <input type="text" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput" placeholder="••••">
       <div class="error-msg">${errorMsg || ''}</div>
       <button class="btn" id="pinSubmit">${isSetup ? 'Set PIN ko' : 'Unlock'}</button>
-      <button class="back-link" id="backBtn">&larr; Bumalik</button>
+      <button class="back-link" id="backBtn">&larr; Back</button>
     </div>
   `;
   const input = document.getElementById('pinInput');
@@ -360,7 +360,7 @@ function renderLock(errorMsg){
       state.currentUser = id;
       state.unlocked = true;
       await saveToCloud();
-      showToast('Na-set na ang PIN mo! 🔒');
+      showToast('Your Pin is Set! 🔒');
       render();
     } else {
       if(val === state.pins[id]){
@@ -435,7 +435,7 @@ function renderMain(){
 
     <div class="add-card">
       <h2>Add Deposit</h2>
-      <div class="as-who">Idadagdag bilang <strong>${state.names[me]}</strong> &middot; kailangan ng approval ni ${state.names[other]} bago ito counted.</div>
+      <div class="as-who">Add <strong>${state.names[me]}</strong> &middot; kailangan ng approval ni ${state.names[other]} bago ito counted.</div>
       <div class="field-row">
         <div class="field">
           <label>AMOUNT (₱)</label>
@@ -464,7 +464,7 @@ function renderMain(){
           <div class="entry-left">
             <div class="entry-who">${state.names[e.person]}${e.note ? ' &middot; <span class="entry-note">'+escapeHtml(e.note)+'</span>' : ''}</div>
             <div class="entry-date">${formatDate(e.date)}</div>
-            <div class="entry-pending-label">${e.addedBy === me ? `Hinihintay ang pagsang-ayon ni ${state.names[other]}` : `Kailangan mong aprubahan`}</div>
+            <div class="entry-pending-label">${e.addedBy === me ? `Waiting for approval ${state.names[other]}` : `Kailangan mong aprubahan`}</div>
           </div>
           <div class="entry-right">
             <div class="entry-amount">${peso(e.amount)}</div>
@@ -507,7 +507,7 @@ function renderMain(){
     </div>
     <div class="gallery-grid">
       ${state.gallery.length === 0 ? `
-        <div class="empty-state" style="grid-column:1/-1;">Wala pang laman ang gallery. Mag-upload ng unang alaala niyo!</div>
+        <div class="empty-state" style="grid-column:1/-1;">Gallery is empty. Upload your memories together!</div>
       ` : [...state.gallery].sort((a,b)=>b.createdAt-a.createdAt).map(item => `
         <div class="gallery-item" data-gid="${item.id}">
           ${item.type === 'video'
@@ -578,7 +578,7 @@ async function addEntry(){
   };
   state.entries.push(entry);
   const ok = await saveToCloud();
-  showToast(ok ? 'Naidagdag! Naghihintay na ng approval. ⏳' : 'Could not save, please try again.');
+  showToast(ok ? 'Added! Waiting for approval. ⏳' : 'Could not save, please try again.');
   render();
 }
 
@@ -593,7 +593,7 @@ async function approveEntry(id){
 }
 
 function confirmDeclineEntry(id){
-  showConfirmModal('Tanggihan ang entry na ito?', 'Ito ay permanenteng mabubura.', async ()=>{
+  showConfirmModal('Do not accept it?', 'permanently deleted.', async ()=>{
     state.entries = state.entries.filter(e=> e.id !== id);
     await saveToCloud();
     showToast('Tinanggihan at naalis na.');
@@ -685,7 +685,7 @@ async function handleFileUpload(e){
   }
   await saveToCloud();
   state.uploading = false;
-  showToast('Na-upload na sa gallery! 💕');
+  showToast('Successfully uploaded! 💕');
   render();
 }
 
@@ -699,7 +699,7 @@ function setCoverPhoto(id){
 }
 
 function confirmDeleteGalleryItem(id){
-  showConfirmModal('Burahin ang larawan/video na ito?', 'Hindi na ito mababawi.', async ()=>{
+  showConfirmModal('Delete the photos/video?', 'Hindi na ito mababawi.', async ()=>{
     const item = state.gallery.find(g=>g.id===id);
     state.gallery = state.gallery.filter(g=>g.id!==id);
     if(item && item.path){
