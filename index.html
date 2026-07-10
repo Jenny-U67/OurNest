@@ -421,6 +421,13 @@ function anniversaryBannerHtml(){
    ============================================================ */
 function renderLock(errorMsg){
   if(state.loginStep === 'pick'){
+    const rememberedId = localStorage.getItem('ournest_identity');
+    if(rememberedId === 'a' || rememberedId === 'b'){
+      state.selectedIdentity = rememberedId;
+      state.loginStep = state.pins[rememberedId] ? 'enterpin' : 'setpin';
+      renderLock();
+      return;
+    }
     app.innerHTML = `
       <div class="lock-screen">
         ${coverPhotoHtml()}
@@ -459,7 +466,7 @@ function renderLock(errorMsg){
       <input type="text" inputmode="numeric" maxlength="6" class="pin-input" id="pinInput" placeholder="••••">
       <div class="error-msg">${errorMsg || ''}</div>
       <button class="btn" id="pinSubmit">${isSetup ? 'Set My PIN' : 'Unlock'}</button>
-      <button class="back-link" id="backBtn">&larr; Back</button>
+      <button class="back-link" id="backBtn">&larr; Not you? Switch account</button>
     </div>
   `;
   const input = document.getElementById('pinInput');
@@ -467,6 +474,7 @@ function renderLock(errorMsg){
   document.getElementById('backBtn').onclick = ()=>{
     state.loginStep = 'pick';
     state.selectedIdentity = null;
+    localStorage.removeItem('ournest_identity');
     render();
   };
   const submit = async ()=>{
@@ -477,6 +485,7 @@ function renderLock(errorMsg){
       state.currentUser = id;
       state.unlocked = true;
       state.currentView = 'home';
+      localStorage.setItem('ournest_identity', id);
       await saveToCloud();
       showToast('Your PIN is set! 🔒');
       render();
@@ -485,6 +494,7 @@ function renderLock(errorMsg){
         state.currentUser = id;
         state.unlocked = true;
         state.currentView = 'home';
+        localStorage.setItem('ournest_identity', id);
         render();
       } else {
         renderLock('Wrong PIN, try again.');
