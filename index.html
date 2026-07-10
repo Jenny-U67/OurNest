@@ -9,7 +9,6 @@
 <!-- Firebase (free database + storage that syncs your data between the two of you) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <style>
   :root{
     --paper: #FDF1F6;
@@ -275,7 +274,8 @@ const FIREBASE_CONFIG = {
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.firestore();
-const storage = firebase.storage();
+const CLOUDINARY_CLOUD_NAME = "ovlhguy9";
+const CLOUDINARY_UPLOAD_PRESET = "lbjnodkm";
 const docRef = db.collection('ipon').doc('shared');
 
 const RELATIONSHIP_START = new Date(2023, 0, 5); // January 5, 2023
@@ -1006,20 +1006,28 @@ function compressImage(file, maxDim, quality){
   });
 }
 
-function uploadWithProgress(storageRef, blob, onProgress){
+function uploadToCloudinary(blob, filename, onProgress){
   return new Promise((resolve, reject)=>{
-    const task = storageRef.put(blob);
-    task.on('state_changed', (snap)=>{
-      const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-      onProgress(pct);
-    }, (err)=>{
-      reject(err);
-    }, async ()=>{
-      try{
-        const url = await task.snapshot.ref.getDownloadURL();
-        resolve(url);
-      }catch(err){ reject(err); }
-    });
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`);
+    xhr.upload.onprogress = (e)=>{
+      if(e.lengthComputable){ onProgress(Math.round((e.loaded / e.total) * 100)); }
+    };
+    xhr.onload = ()=>{
+      if(xhr.status >= 200 && xhr.status < 300){
+        try{
+          const data = JSON.parse(xhr.responseText);
+          resolve(data.secure_url);
+        }catch(err){ reject(err); }
+      } else {
+        reject(new Error('Upload failed (' + xhr.status + '): ' + xhr.responseText));
+      }
+    };
+    xhr.onerror = ()=> reject(new Error('Network error during upload'));
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    xhr.send(formData);
   });
 }
 
@@ -1035,8 +1043,6 @@ async function handleFileUpload(e){
     try{
       const isVideo = file.type.startsWith('video');
       const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      const path = `gallery/${Date.now()}_${safeName}`;
-      const storageRef = storage.ref().child(path);
 
       let blobToUpload = file;
       if(!isVideo){
@@ -1045,21 +1051,20 @@ async function handleFileUpload(e){
         catch(compressErr){ console.warn('compression skipped', compressErr); blobToUpload = file; }
       }
 
-      const url = await uploadWithProgress(storageRef, blobToUpload, (pct)=>{
+      const url = await uploadToCloudinary(blobToUpload, safeName, (pct)=>{
         if(statusEl()) statusEl().textContent = `Uploading ${isVideo ? 'video' : 'photo'} ${i+1} of ${files.length}... ${pct}%`;
       });
 
       state.gallery.push({
         id: 'g_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
         url: url,
-        path: path,
         type: isVideo ? 'video' : 'image',
         uploadedBy: state.currentUser,
         createdAt: Date.now()
       });
     }catch(err){
       console.error('upload failed', err);
-      showToast('One file could not be uploaded. Check your Storage rules.');
+      showToast('One file could not be uploaded. Please try again.');
     }
   }
   await saveToCloud();
@@ -1081,9 +1086,6 @@ function confirmDeleteGalleryItem(id){
   showConfirmModal('Delete this photo/video?', "This can't be undone.", async ()=>{
     const item = state.gallery.find(g=>g.id===id);
     state.gallery = state.gallery.filter(g=>g.id!==id);
-    if(item && item.path){
-      try{ await storage.ref().child(item.path).delete(); }catch(err){ console.error('storage delete failed', err); }
-    }
     if(item && state.coverPhotoUrl === item.url){ state.coverPhotoUrl = null; }
     await saveToCloud();
     showToast('Removed from gallery.');
@@ -1145,13 +1147,11 @@ async function stopRecordingAndSend(){
   state.uploading = true;
   render();
   try{
-    const path = `voices/${Date.now()}_${state.currentUser}.webm`;
-    const storageRef = storage.ref().child(path);
-    const url = await uploadWithProgress(storageRef, blob, ()=>{});
+    const filename = `voice_${Date.now()}_${state.currentUser}.webm`;
+    const url = await uploadToCloudinary(blob, filename, ()=>{});
     state.voiceMessages.push({
       id: 'v_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
       url: url,
-      path: path,
       sender: state.currentUser,
       createdAt: Date.now(),
       duration: recordingSeconds
@@ -1177,11 +1177,7 @@ function cancelRecording(){
 
 function confirmDeleteVoice(id){
   showConfirmModal('Delete this voice message?', "This can't be undone.", async ()=>{
-    const item = state.voiceMessages.find(v=>v.id===id);
     state.voiceMessages = state.voiceMessages.filter(v=>v.id!==id);
-    if(item && item.path){
-      try{ await storage.ref().child(item.path).delete(); }catch(err){ console.error('storage delete failed', err); }
-    }
     await saveToCloud();
     showToast('Voice message removed.');
     render();
