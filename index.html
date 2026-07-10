@@ -294,6 +294,7 @@ let state = {
   gallery: [],
   voiceMessages: [],
   messages: [],
+  lastSeen: { a: null, b: null },
   isRecording: false,
   loading: true,
   uploading: false
@@ -322,7 +323,8 @@ async function saveToCloud(){
       coverPhotoUrl: state.coverPhotoUrl,
       gallery: state.gallery,
       voiceMessages: state.voiceMessages,
-      messages: state.messages
+      messages: state.messages,
+      lastSeen: state.lastSeen
     }, { merge: true });
     return true;
   }catch(e){
@@ -342,6 +344,7 @@ function loadAll(){
     state.gallery = Array.isArray(data.gallery) ? data.gallery : [];
     state.voiceMessages = Array.isArray(data.voiceMessages) ? data.voiceMessages : [];
     state.messages = Array.isArray(data.messages) ? data.messages : [];
+    state.lastSeen = data.lastSeen || { a: null, b: null };
     state.loading = false;
     render();
   }, (err)=>{
@@ -485,8 +488,10 @@ function renderLock(errorMsg){
       state.currentUser = id;
       state.unlocked = true;
       state.currentView = 'home';
+      state.lastSeen[id] = Date.now();
       localStorage.setItem('ournest_identity', id);
       await saveToCloud();
+      startPresenceHeartbeat();
       showToast('Your PIN is set! 🔒');
       render();
     } else {
@@ -494,7 +499,10 @@ function renderLock(errorMsg){
         state.currentUser = id;
         state.unlocked = true;
         state.currentView = 'home';
+        state.lastSeen[id] = Date.now();
         localStorage.setItem('ournest_identity', id);
+        await saveToCloud();
+        startPresenceHeartbeat();
         render();
       } else {
         renderLock('Wrong PIN, try again.');
@@ -510,15 +518,17 @@ function renderLock(errorMsg){
    ============================================================ */
 function renderHome(){
   const t = totals();
+  const me = state.currentUser;
+  const other = me === 'a' ? 'b' : 'a';
   app.innerHTML = `
     <div class="top-bar">
-      <span class="who-badge"><span class="identity-dot dot-${state.currentUser}"></span>Logged in as ${state.names[state.currentUser]}</span>
+      <span class="who-badge"><span class="identity-dot dot-${me}"></span>Logged in as ${state.names[me]}</span>
       <button class="back-btn" id="lockBtn">🔒 Lock</button>
     </div>
     <div class="hub-header">
       ${coverPhotoHtml()}
       <h1>Welcome, ${state.names.a} &amp; ${state.names.b} 💕</h1>
-      <p>What would you like to open?</p>
+      <p>${presenceLine(other)}</p>
     </div>
 
     ${anniversaryBannerHtml()}
@@ -563,6 +573,7 @@ function renderHome(){
   document.getElementById('goVoice').onclick = ()=>{ state.currentView='voice'; render(); };
   document.getElementById('goChat').onclick = ()=>{ state.currentView='chat'; render(); };
   document.getElementById('lockBtn').onclick = ()=>{
+    stopPresenceHeartbeat();
     state.unlocked = false;
     state.currentUser = null;
     state.loginStep = 'pick';
@@ -1094,6 +1105,32 @@ function confirmDeleteGalleryItem(id){
 }
 
 /* ---------- VOICE MESSAGES ---------- */
+function presenceLine(personId){
+  const ts = state.lastSeen[personId];
+  const name = state.names[personId];
+  if(!ts) return `${name} hasn't opened OurNest yet.`;
+  const diffMs = Date.now() - ts;
+  if(diffMs < 90 * 1000) return `🟢 ${name} is online right now`;
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 60) return `${name} was last here ${mins} minute${mins===1?'':'s'} ago`;
+  const hours = Math.floor(mins / 60);
+  if(hours < 24) return `${name} was last here ${hours} hour${hours===1?'':'s'} ago`;
+  const days = Math.floor(hours / 24);
+  return `${name} was last here ${days} day${days===1?'':'s'} ago`;
+}
+
+let presenceInterval = null;
+function startPresenceHeartbeat(){
+  stopPresenceHeartbeat();
+  presenceInterval = setInterval(async ()=>{
+    if(!state.unlocked || !state.currentUser) return;
+    state.lastSeen[state.currentUser] = Date.now();
+    await saveToCloud();
+  }, 60000);
+}
+function stopPresenceHeartbeat(){
+  if(presenceInterval){ clearInterval(presenceInterval); presenceInterval = null; }
+}
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingInterval = null;
