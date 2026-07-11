@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DailySpend</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #FAF9F4;
+    --paper-edge: #E7E2D3;
+    --ink: #2B2A26;
+    --muted: #8B8778;
+    --green: #2D6A4F;
+    --green-bg: #E7F0EA;
+    --red: #B23A2E;
+    --red-bg: #FBEAE8;
+    --gold: #B8862E;
+    --card-shadow: 0 10px 30px rgba(43,42,38,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: #EDEAE0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(43,42,38,0.06) 1px, transparent 0);
+    background-size: 18px 18px;
+    font-family:'Inter', sans-serif;
+    color: var(--ink);
+    padding: 32px 16px 70px;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 460px; margin: 0 auto; }
+
+  /* ---------- TOP NAV ---------- */
+  .tabs{ display:flex; gap:6px; background:#fff; border-radius:14px; padding:5px; box-shadow: var(--card-shadow); margin-bottom:22px; }
+  .tab{
+    flex:1; text-align:center; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:600;
+    color: var(--muted); cursor:pointer; transition: all .15s ease; font-family:'Inter',sans-serif; background:none; border:none;
+  }
+  .tab.active{ background: var(--ink); color:#fff; }
+
+  /* ---------- RECEIPT CARD ---------- */
+  .receipt{
+    background: var(--paper);
+    box-shadow: var(--card-shadow);
+    padding: 28px 26px 22px;
+    position: relative;
+    margin-bottom: 22px;
+  }
+  .receipt::before, .receipt::after{
+    content:"";
+    position:absolute; left:0; right:0; height:10px;
+    background-image: linear-gradient(135deg, var(--paper) 25%, transparent 25%), linear-gradient(225deg, var(--paper) 25%, transparent 25%);
+    background-size: 14px 14px; background-repeat: repeat-x;
+  }
+  .receipt::before{ top:-9px; background-position: 0 10px; }
+  .receipt::after{ bottom:-9px; background-image: linear-gradient(45deg, var(--paper) 25%, transparent 25%), linear-gradient(315deg, var(--paper) 25%, transparent 25%); background-position: 0 -1px; }
+
+  .r-masthead{ text-align:center; margin-bottom:4px; }
+  .r-masthead .brand{ font-family:'Space Mono', monospace; font-weight:700; font-size:20px; letter-spacing:2px; }
+  .r-masthead .sub{ font-size:11px; color:var(--muted); margin-top:2px; letter-spacing:1px; }
+  .r-divider{ border:none; border-top:1.5px dashed var(--paper-edge); margin:16px 0; }
+
+  .r-date{ text-align:center; font-family:'Space Mono', monospace; font-size:11.5px; color:var(--muted); margin-bottom:14px; letter-spacing:0.5px; }
+
+  .r-items{ display:flex; flex-direction:column; gap:2px; }
+  .r-item{ display:flex; align-items:baseline; gap:6px; padding:6px 0; }
+  .r-item .name{ font-size:13.5px; white-space:nowrap; overflow:hidden; }
+  .r-item .cat{ font-size:9.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; display:block; margin-top:1px; }
+  .r-item .leader{ flex:1; border-bottom:1px dotted #C9C4B3; margin-bottom:4px; }
+  .r-item .amt{ font-family:'Space Mono', monospace; font-size:13.5px; font-weight:700; white-space:nowrap; }
+  .r-item .del{ background:none; border:none; color:#C9C4B3; cursor:pointer; font-size:13px; padding:0 0 0 4px; }
+  .r-item .del:hover{ color: var(--red); }
+
+  .r-empty{ text-align:center; color:var(--muted); font-size:12.5px; padding:18px 0; font-style:italic; }
+
+  .r-total-row{ display:flex; justify-content:space-between; align-items:baseline; margin-top:14px; padding-top:12px; border-top:2px solid var(--ink); }
+  .r-total-row .label{ font-family:'Space Mono', monospace; font-weight:700; font-size:14px; letter-spacing:1px; }
+  .r-total-row .value{ font-family:'Space Mono', monospace; font-weight:700; font-size:20px; }
+
+  /* ---------- BUDGET GAUGE (barcode style) ---------- */
+  .gauge-block{ margin-top:18px; }
+  .gauge-top{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:6px; font-family:'Space Mono',monospace; }
+  .barcode{ height:26px; display:flex; align-items:flex-end; gap:1.5px; background:#fff; border:1px solid var(--paper-edge); padding:3px 4px; overflow:hidden; }
+  .barcode .bar{ flex:1; background: var(--ink); opacity:0.15; }
+  .barcode .bar.filled{ opacity:1; }
+  .barcode .bar.over{ background: var(--red); }
+  .stamp{
+    position:absolute; top:14px; right:-6px; font-family:'Space Mono', monospace; font-weight:700; font-size:12.5px;
+    border:2.5px solid; border-radius:4px; padding:3px 8px; transform: rotate(-9deg); letter-spacing:1px;
+  }
+  .stamp.ok{ color: var(--green); border-color: var(--green); }
+  .stamp.over{ color: var(--red); border-color: var(--red); }
+
+  .no-goal-hint{ font-size:11.5px; color:var(--muted); text-align:center; margin-top:16px; }
+  .no-goal-hint button{ background:none; border:none; color:var(--ink); text-decoration:underline; cursor:pointer; font-size:11.5px; font-family:'Inter',sans-serif; padding:0; }
+
+  /* ---------- ADD FORM ---------- */
+  .add-card{ background:#fff; border-radius:16px; padding:18px; box-shadow: var(--card-shadow); margin-bottom:22px; }
+  .add-card h2{ font-family:'Space Mono', monospace; font-size:13.5px; letter-spacing:1px; margin:0 0 14px; text-transform:uppercase; }
+  .field-row{ display:flex; gap:10px; margin-bottom:10px; }
+  .field{ flex:1; }
+  .field label{ display:block; font-size:10.5px; color:var(--muted); margin-bottom:5px; font-weight:600; letter-spacing:.4px; text-transform:uppercase; }
+  input[type=number], input[type=text], input[type=date], select{
+    width:100%; padding:10px 11px; border-radius:9px; border:1.5px solid var(--paper-edge);
+    background: var(--paper); font-family:'Inter', sans-serif; font-size:14px; color:var(--ink);
+  }
+  input:focus, select:focus{ outline:none; border-color: var(--ink); }
+  .btn{
+    width:100%; padding:13px; border:none; border-radius:10px; font-size:14px; font-weight:700;
+    background: var(--ink); color:#fff; cursor:pointer; font-family:'Space Mono',monospace; letter-spacing:1px;
+    transition: transform .1s ease, background .15s ease;
+  }
+  .btn:hover{ background:#000; }
+  .btn:active{ transform: scale(0.98); }
+  .btn-outline{ background:transparent; color:var(--ink); border:1.5px solid var(--paper-edge); }
+  .btn-outline:hover{ background: var(--paper); }
+
+  /* ---------- WEEK VIEW ---------- */
+  .week-day-row{
+    background:#fff; border-radius:12px; padding:12px 16px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;
+    box-shadow: 0 2px 8px rgba(43,42,38,0.06);
+  }
+  .week-day-row .day-name{ font-size:13px; font-weight:600; }
+  .week-day-row .day-date{ font-size:10.5px; color:var(--muted); }
+  .week-day-row .day-amt{ font-family:'Space Mono', monospace; font-weight:700; font-size:14px; }
+  .week-day-row.today{ border:1.5px solid var(--ink); }
+
+  /* ---------- HISTORY ---------- */
+  .history-group{ margin-bottom:14px; }
+  .history-date-header{
+    display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:#fff; border-radius:10px 10px 0 0;
+    cursor:pointer; font-size:12.5px; font-weight:600; border-bottom:1px dashed var(--paper-edge);
+  }
+  .history-date-header .amt{ font-family:'Space Mono', monospace; }
+  .history-items{ background:#fff; border-radius:0 0 10px 10px; padding:4px 14px 10px; }
+  .history-item{ display:flex; justify-content:space-between; padding:5px 0; font-size:12.5px; border-bottom:1px dotted #eee; }
+  .history-item:last-child{ border-bottom:none; }
+  .history-item .amt{ font-family:'Space Mono', monospace; font-weight:600; }
+
+  .empty-state{ text-align:center; color:var(--muted); font-size:13px; padding:30px 20px; }
+
+  /* ---------- MODAL ---------- */
+  .modal-overlay{ position:fixed; inset:0; background:rgba(43,42,38,0.5); display:flex; align-items:center; justify-content:center; z-index:60; padding:20px; }
+  .modal-box{ background:#fff; border-radius:16px; padding:24px; max-width:360px; width:100%; box-shadow: var(--card-shadow); }
+  .modal-box h3{ font-family:'Space Mono', monospace; font-size:15px; margin:0 0 16px; letter-spacing:0.5px; }
+  .modal-actions{ display:flex; gap:10px; margin-top:16px; }
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background: var(--ink); color:#fff; padding:11px 20px; border-radius:10px; font-size:13.5px;
+    box-shadow: var(--card-shadow); opacity:0; transition: all .3s ease; pointer-events:none; z-index:70;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .settings-link{ text-align:center; margin-top:8px; }
+  .settings-link button{ background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; text-decoration:underline; font-family:'Inter',sans-serif; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'dailyspend_data_v1';
+const CATEGORIES = ['Food', 'Transport', 'Bills', 'Load/Internet', 'Shopping', 'Other'];
+
+let state = {
+  expenses: [],
+  dailyGoal: null,
+  weeklyGoal: null,
+  currentTab: 'today'
+};
+
+const app = document.getElementById('app');
+const toastEl = document.getElementById('toast');
+
+function showToast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(()=> toastEl.classList.remove('show'), 2000);
+}
+
+function peso(n){
+  return '₱' + Number(n||0).toLocaleString('en-PH', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      state.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+      state.dailyGoal = data.dailyGoal ?? null;
+      state.weeklyGoal = data.weeklyGoal ?? null;
+    }
+  }catch(e){ console.error('load failed', e); }
+}
+
+function saveData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      expenses: state.expenses,
+      dailyGoal: state.dailyGoal,
+      weeklyGoal: state.weeklyGoal
+    }));
+  }catch(e){ console.error('save failed', e); showToast('Could not save. Storage might be full.'); }
+}
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function formatDateLong(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-PH', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+}
+function formatDateShort(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-PH', { month:'short', day:'numeric' });
+}
+
+function expensesForDate(dateStr){
+  return state.expenses.filter(e=>e.date===dateStr);
+}
+function totalForDate(dateStr){
+  return expensesForDate(dateStr).reduce((sum,e)=>sum+Number(e.amount),0);
+}
+function startOfWeek(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=Sun
+  const diff = day === 0 ? -6 : 1 - day; // Monday as start
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+function weekDates(dateStr){
+  const start = startOfWeek(dateStr);
+  const dates = [];
+  for(let i=0;i<7;i++){
+    const d = new Date(start);
+    d.setDate(start.getDate()+i);
+    dates.push(d.toISOString().slice(0,10));
+  }
+  return dates;
+}
+function totalForWeek(dateStr){
+  return weekDates(dateStr).reduce((sum,d)=>sum+totalForDate(d),0);
+}
+
+function barcodeHtml(spent, goal){
+  const barsCount = 28;
+  const pct = goal > 0 ? Math.min(1, spent/goal) : 0;
+  const filledCount = Math.round(barsCount * pct);
+  const isOver = goal > 0 && spent > goal;
+  let bars = '';
+  for(let i=0;i<barsCount;i++){
+    const filled = i < filledCount;
+    const h = 30 + Math.round(Math.sin(i*1.7)*20 + 30);
+    bars += `<div class="bar ${filled ? (isOver ? 'filled over' : 'filled') : ''}" style="height:${h}%"></div>`;
+  }
+  return `<div class="barcode">${bars}</div>`;
+}
+
+/* ============================================================
+   TODAY VIEW
+   ============================================================ */
+function renderToday(){
+  const today = todayStr();
+  const items = [...expensesForDate(today)].sort((a,b)=>b.createdAt-a.createdAt);
+  const total = totalForDate(today);
+  const goal = state.dailyGoal;
+  const isOver = goal && total > goal;
+
+  return `
+    <div class="receipt" style="position:relative;">
+      ${goal ? `<div class="stamp ${isOver ? 'over' : 'ok'}">${isOver ? 'OVER BUDGET' : 'ON BUDGET'}</div>` : ''}
+      <div class="r-masthead">
+        <div class="brand">DAILYSPEND</div>
+        <div class="sub">TODAY'S RECEIPT</div>
+      </div>
+      <div class="r-date">${formatDateLong(today).toUpperCase()}</div>
+      <hr class="r-divider">
+      <div class="r-items">
+        ${items.length === 0 ? `<div class="r-empty">No purchases logged today.</div>` : items.map(e => `
+          <div class="r-item">
+            <div>
+              <span class="name">${escapeHtml(e.item)}</span>
+              <span class="cat">${e.category}</span>
+            </div>
+            <div class="leader"></div>
+            <span class="amt">${peso(e.amount)}</span>
+            <button class="del" data-del="${e.id}">✕</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="r-total-row">
+        <span class="label">TOTAL</span>
+        <span class="value">${peso(total)}</span>
+      </div>
+      ${goal ? `
+        <div class="gauge-block">
+          <div class="gauge-top"><span>DAILY BUDGET</span><span>${peso(total)} / ${peso(goal)}</span></div>
+          ${barcodeHtml(total, goal)}
+        </div>
+      ` : `
+        <div class="no-goal-hint">No daily budget set. <button id="setGoalLink">Set one</button></div>
+      `}
+    </div>
+
+    <div class="add-card">
+      <h2>Log a Purchase</h2>
+      <div class="field-row">
+        <div class="field">
+          <label>Item</label>
+          <input type="text" id="itemInput" placeholder="e.g. Jollibee lunch">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Amount (₱)</label>
+          <input type="number" id="amountInput" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <select id="categoryInput">
+            ${CATEGORIES.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Date</label>
+          <input type="date" id="dateInput" value="${today}">
+        </div>
+      </div>
+      <button class="btn" id="addExpenseBtn">ADD TO RECEIPT</button>
+    </div>
+
+    <div class="settings-link"><button id="editGoalsBtn">Set budget goals</button></div>
+  `;
+}
+
+/* ============================================================
+   WEEK VIEW
+   ============================================================ */
+function renderWeek(){
+  const today = todayStr();
+  const dates = weekDates(today);
+  const total = totalForWeek(today);
+  const goal = state.weeklyGoal;
+  const isOver = goal && total > goal;
+
+  return `
+    <div class="receipt" style="position:relative;">
+      ${goal ? `<div class="stamp ${isOver ? 'over' : 'ok'}">${isOver ? 'OVER BUDGET' : 'ON BUDGET'}</div>` : ''}
+      <div class="r-masthead">
+        <div class="brand">DAILYSPEND</div>
+        <div class="sub">WEEKLY SUMMARY</div>
+      </div>
+      <div class="r-date">${formatDateShort(dates[0])} &ndash; ${formatDateShort(dates[6])}</div>
+      <hr class="r-divider">
+      <div>
+        ${dates.map(d => {
+          const dayTotal = totalForDate(d);
+          const dayName = new Date(d+'T00:00:00').toLocaleDateString('en-PH', {weekday:'short'});
+          const isToday = d === today;
+          return `
+            <div class="week-day-row ${isToday ? 'today':''}">
+              <div>
+                <div class="day-name">${dayName}${isToday ? ' (Today)' : ''}</div>
+                <div class="day-date">${formatDateShort(d)}</div>
+              </div>
+              <div class="day-amt">${peso(dayTotal)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="r-total-row">
+        <span class="label">WEEK TOTAL</span>
+        <span class="value">${peso(total)}</span>
+      </div>
+      ${goal ? `
+        <div class="gauge-block">
+          <div class="gauge-top"><span>WEEKLY BUDGET</span><span>${peso(total)} / ${peso(goal)}</span></div>
+          ${barcodeHtml(total, goal)}
+        </div>
+      ` : `
+        <div class="no-goal-hint">No weekly budget set. <button id="setGoalLink">Set one</button></div>
+      `}
+    </div>
+    <div class="settings-link"><button id="editGoalsBtn">Set budget goals</button></div>
+  `;
+}
+
+/* ============================================================
+   HISTORY VIEW
+   ============================================================ */
+function renderHistory(){
+  const byDate = {};
+  state.expenses.forEach(e=>{
+    if(!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  });
+  const dates = Object.keys(byDate).sort((a,b)=> b.localeCompare(a));
+
+  if(dates.length === 0){
+    return `<div class="empty-state">No spending history yet. Log your first purchase in the Today tab!</div>`;
+  }
+
+  return dates.map(d => {
+    const items = byDate[d].sort((a,b)=>b.createdAt-a.createdAt);
+    const total = items.reduce((s,e)=>s+Number(e.amount),0);
+    return `
+      <div class="history-group">
+        <div class="history-date-header">
+          <span>${formatDateLong(d)}</span>
+          <span class="amt">${peso(total)}</span>
+        </div>
+        <div class="history-items">
+          ${items.map(e=>`
+            <div class="history-item">
+              <span>${escapeHtml(e.item)} <span style="color:var(--muted);font-size:10px;">(${e.category})</span></span>
+              <span class="amt">${peso(e.amount)}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* ============================================================
+   MAIN RENDER
+   ============================================================ */
+function render(){
+  const tabs = `
+    <div class="tabs">
+      <button class="tab ${state.currentTab==='today'?'active':''}" data-tab="today">Today</button>
+      <button class="tab ${state.currentTab==='week'?'active':''}" data-tab="week">This Week</button>
+      <button class="tab ${state.currentTab==='history'?'active':''}" data-tab="history">History</button>
+    </div>
+  `;
+  let content = '';
+  if(state.currentTab === 'today') content = renderToday();
+  else if(state.currentTab === 'week') content = renderWeek();
+  else content = renderHistory();
+
+  app.innerHTML = tabs + content;
+
+  document.querySelectorAll('[data-tab]').forEach(btn=>{
+    btn.onclick = ()=>{ state.currentTab = btn.getAttribute('data-tab'); render(); };
+  });
+
+  const addBtn = document.getElementById('addExpenseBtn');
+  if(addBtn) addBtn.onclick = addExpense;
+
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.onclick = ()=> deleteExpense(btn.getAttribute('data-del'));
+  });
+
+  const editGoalsBtn = document.getElementById('editGoalsBtn');
+  if(editGoalsBtn) editGoalsBtn.onclick = openGoalsModal;
+  const setGoalLink = document.getElementById('setGoalLink');
+  if(setGoalLink) setGoalLink.onclick = openGoalsModal;
+}
+
+function addExpense(){
+  const itemInput = document.getElementById('itemInput');
+  const amountInput = document.getElementById('amountInput');
+  const categoryInput = document.getElementById('categoryInput');
+  const dateInput = document.getElementById('dateInput');
+
+  const item = itemInput.value.trim();
+  const amount = parseFloat(amountInput.value);
+
+  if(!item){ showToast('Please enter what you bought.'); return; }
+  if(!amount || amount <= 0){ showToast('Please enter a valid amount.'); return; }
+
+  state.expenses.push({
+    id: 'x_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    item: item,
+    amount: amount,
+    category: categoryInput.value,
+    date: dateInput.value || todayStr(),
+    createdAt: Date.now()
+  });
+  saveData();
+  showToast('Added to receipt! 🧾');
+  render();
+}
+
+function deleteExpense(id){
+  state.expenses = state.expenses.filter(e=>e.id!==id);
+  saveData();
+  showToast('Removed.');
+  render();
+}
+
+function openGoalsModal(){
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h3>SET BUDGET GOALS</h3>
+      <div class="field" style="margin-bottom:12px;">
+        <label>Daily Budget (₱)</label>
+        <input type="number" id="dailyGoalInput" placeholder="e.g. 300" min="0" step="10" value="${state.dailyGoal || ''}">
+      </div>
+      <div class="field" style="margin-bottom:4px;">
+        <label>Weekly Budget (₱)</label>
+        <input type="number" id="weeklyGoalInput" placeholder="e.g. 2000" min="0" step="50" value="${state.weeklyGoal || ''}">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="cancelGoals">Cancel</button>
+        <button class="btn" id="saveGoals">Save</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById('cancelGoals').onclick = ()=> overlay.remove();
+  document.getElementById('saveGoals').onclick = ()=>{
+    const dg = parseFloat(document.getElementById('dailyGoalInput').value);
+    const wg = parseFloat(document.getElementById('weeklyGoalInput').value);
+    state.dailyGoal = dg > 0 ? dg : null;
+    state.weeklyGoal = wg > 0 ? wg : null;
+    saveData();
+    overlay.remove();
+    showToast('Budget goals saved!');
+    render();
+  };
+}
+
+loadData();
+render();
+</script>
+</body>
+</html>
